@@ -18,6 +18,7 @@ if "current_chat" not in st.session_state:
 if "chat_names" not in st.session_state:
     st.session_state["chat_names"] = {}
 
+
 # Functions to manage chats
 def load_chats_from_db():
     response = requests.get(LOAD_CHAT_URL)
@@ -25,25 +26,34 @@ def load_chats_from_db():
     if response.status_code == 200:
         records = response.json()
         for record in records:
-            chat_id = record['id']
-            messages = record['messages']
-            name = record['chat_name']
-            pdf_path = record['pdf_path']
-            pdf_name = record['pdf_name']
-            pdf_uuid = record['pdf_uuid']
-            st.session_state["history_chats"].append({"id": chat_id, "messages": messages, "pdf_name":pdf_name, "pdf_path":pdf_path, "pdf_uuid":pdf_uuid})
+            chat_id = record["id"]
+            messages = record["messages"]
+            name = record["chat_name"]
+            pdf_path = record["pdf_path"]
+            pdf_name = record["pdf_name"]
+            pdf_uuid = record["pdf_uuid"]
+            st.session_state["history_chats"].append(
+                {
+                    "id": chat_id,
+                    "messages": messages,
+                    "pdf_name": pdf_name,
+                    "pdf_path": pdf_path,
+                    "pdf_uuid": pdf_uuid,
+                }
+            )
             st.session_state["chat_names"][chat_id] = name
     else:
         print(f"Failed to retrieve data. Status code: {response.status_code}")
 
+
 def save_chat_to_db(chat_id, chat_name, messages, pdf_name, pdf_path, pdf_uuid):
     payload = {
-                "chat_id": chat_id,
-                "chat_name": chat_name,
-                "messages": messages,
-                "pdf_name": pdf_name,
-                "pdf_path": pdf_path,
-                "pdf_uuid": pdf_uuid
+        "chat_id": chat_id,
+        "chat_name": chat_name,
+        "messages": messages,
+        "pdf_name": pdf_name,
+        "pdf_path": pdf_path,
+        "pdf_uuid": pdf_uuid,
     }
     headers = {"Content-Type": "application/json"}
 
@@ -52,10 +62,13 @@ def save_chat_to_db(chat_id, chat_name, messages, pdf_name, pdf_path, pdf_uuid):
     if response.status_code != 200:
         print(f"Failed to save data. Status code: {response.status_code}")
 
+
 def create_chat_with_pdf(chat_name, uploaded_pdf):
 
     with st.spinner("Uploading and Processing document, please wait..."):
-        files = {"file": (uploaded_pdf.name, uploaded_pdf.getvalue(), "application/pdf")}
+        files = {
+            "file": (uploaded_pdf.name, uploaded_pdf.getvalue(), "application/pdf")
+        }
 
         response = requests.post(UPLOAD_PDF_URL, files=files)
 
@@ -65,24 +78,39 @@ def create_chat_with_pdf(chat_name, uploaded_pdf):
             pdf_uuid = response.json()["pdf_uuid"]
 
             new_chat_id = str(uuid.uuid4())
-            new_chat = {"id": new_chat_id, "messages": [], "pdf_name":uploaded_pdf.name, "pdf_path": pdf_path, "pdf_uuid":pdf_uuid}
+            new_chat = {
+                "id": new_chat_id,
+                "messages": [],
+                "pdf_name": uploaded_pdf.name,
+                "pdf_path": pdf_path,
+                "pdf_uuid": pdf_uuid,
+            }
             st.session_state["history_chats"].insert(0, new_chat)
             st.session_state["chat_names"][new_chat_id] = chat_name
             st.session_state["current_chat"] = new_chat_id
-            save_chat_to_db(new_chat_id, chat_name, [], uploaded_pdf.name, pdf_path, pdf_uuid)
+            save_chat_to_db(
+                new_chat_id, chat_name, [], uploaded_pdf.name, pdf_path, pdf_uuid
+            )
             st.success("Successed!")
         else:
             st.error("Failed to upload PDF.")
 
+
 def create_chat(chat_name):
     new_chat_id = str(uuid.uuid4())
-    new_chat = {"id": new_chat_id, "messages": [], "pdf_name":None, "pdf_path": None, "pdf_uuid": None}
+    new_chat = {
+        "id": new_chat_id,
+        "messages": [],
+        "pdf_name": None,
+        "pdf_path": None,
+        "pdf_uuid": None,
+    }
     st.session_state["history_chats"].insert(0, new_chat)
     st.session_state["chat_names"][new_chat_id] = chat_name
     st.session_state["current_chat"] = new_chat_id
-    
+
     save_chat_to_db(new_chat_id, chat_name, [], None, None, None)
-    
+
 
 def delete_chat():
     if st.session_state["current_chat"]:
@@ -91,9 +119,7 @@ def delete_chat():
             chat for chat in st.session_state["history_chats"] if chat["id"] != chat_id
         ]
         del st.session_state["chat_names"][chat_id]
-        payload = {
-                "chat_id": chat_id
-        }
+        payload = {"chat_id": chat_id}
         headers = {"Content-Type": "application/json"}
 
         response = requests.post(DELETE_CHAT_URL, json=payload, headers=headers)
@@ -102,11 +128,15 @@ def delete_chat():
             print(f"Failed to delete data. Status code: {response.status_code}")
 
         st.session_state["current_chat"] = (
-            st.session_state["history_chats"][0]["id"] if st.session_state["history_chats"] else None
+            st.session_state["history_chats"][0]["id"]
+            if st.session_state["history_chats"]
+            else None
         )
+
 
 def select_chat(chat_id):
     st.session_state["current_chat"] = chat_id
+
 
 # Load chats from database
 load_chats_from_db()
@@ -202,13 +232,23 @@ if st.session_state["current_chat"]:
 
                 # Stream approach
                 def get_stream_response():
-                    with requests.post(chat_taret_url, json=payload, headers=headers, stream=True) as r:
+                    with requests.post(
+                        chat_taret_url, json=payload, headers=headers, stream=True
+                    ) as r:
                         for chunk in r:
                             yield chunk.decode("utf-8")
 
                 response = st.write_stream(get_stream_response)
-                current_chat["messages"].append({"role": "assistant", "content": response})
-                save_chat_to_db(chat_id, chat_name, current_chat["messages"], current_chat["pdf_name"], current_chat["pdf_path"], current_chat["pdf_uuid"])
+                current_chat["messages"].append(
+                    {"role": "assistant", "content": response}
+                )
+                save_chat_to_db(
+                    chat_id,
+                    chat_name,
+                    current_chat["messages"],
+                    current_chat["pdf_name"],
+                    current_chat["pdf_path"],
+                    current_chat["pdf_uuid"],
+                )
 else:
     st.write("No chat selected. Use the sidebar to create or select a chat.")
-

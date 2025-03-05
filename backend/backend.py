@@ -13,9 +13,11 @@ model = "gpt-3.5-turbo"
 
 app = FastAPI()
 
+
 # request model
 class ChatRequest(BaseModel):
     messages: list
+
 
 @app.post("/chat/")
 async def chat(request: ChatRequest):
@@ -40,6 +42,6 @@ async def chat(request: ChatRequest):
 
         # Use StreamingResponse to return
         # return StreamingResponse(stream_response(), media_type="text/plain")
-    
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
