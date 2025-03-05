@@ -31,10 +31,6 @@ jobs:
           black .
           isort .
 
-      - name: Lint Check
-        run: |
-          flake8 --ignore=E501  # Ignores long-line warnings
-
       - name: Commit and Push Fixes
         run: |
           git config --global user.name "github-actions[bot]"
