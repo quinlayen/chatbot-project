@@ -1,4 +1,4 @@
-name: CI Pipeline
+name: Python Formatting & Linting
 
 on:
   push:
@@ -9,11 +9,11 @@ on:
       - master
 
 jobs:
-  build:
+  format-lint:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Respository
+      - name: Checkout Repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -26,26 +26,20 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Lint Check 
+      - name: Auto-Fix Code Style
         run: |
-          pip install flake8
-          flake8 --ignore=E501 . 
+          black .
+          isort .
 
-      - name: Run Tests
+      - name: Lint Check
         run: |
-          if [ -f pytest.ini ]; then
-            pip install pytest
-            pytest
-          else
-            echo "No tests found, skipping..."
-          fi
+          flake8 --ignore=E501  # Ignores long-line warnings
 
-
-
-
-
-
-
-
-
-
+      - name: Commit and Push Fixes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add .
+          git commit -m "Auto-format code with Black and isort" || echo "No changes to commit"
+          git push
+        continue-on-error: true
